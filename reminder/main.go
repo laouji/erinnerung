@@ -12,7 +12,7 @@ import (
 var configFile string
 
 func main() {
-	flag.StringVar(&configFile, "c", "config/config.yml", "location of config file")
+	flag.StringVar(&configFile, "c", "config.yml", "location of config file")
 	flag.Parse()
 
 	conf, err := config.LoadConfig(configFile)
