@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -42,23 +43,31 @@ func (client *Client) Post(cards []trello.Card, locationStr string) error {
 		return fmt.Errorf("slack client encountered error generating payload: %s", err)
 	}
 
-	req, err := http.NewRequest("POST", client.webHookUri, bytes.NewBuffer([]byte(jsonPayload)))
+	_, err = client.sendRequest("POST", client.webHookUri, bytes.NewBuffer([]byte(jsonPayload)))
 	if err != nil {
-		return fmt.Errorf("slack client encountered error creating new request %s", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := client.httpClient.Do(req)
-	defer res.Body.Close()
-	if err != nil {
-		return fmt.Errorf("slack client encountered error sending request %s", err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("slack client request returned %d status: %s", res.StatusCode, err)
+		return err
 	}
 
 	return nil
+}
+
+func (client *Client) sendRequest(method, url string, body io.Reader) (res *http.Response, err error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, fmt.Errorf("slack client encountered error creating new request: %s", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err = client.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("slack client encountered error sending request: %s", err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("slack client request returned %d status: %s", res.StatusCode, err)
+	}
+
+	return res, nil
 }
 
 func (client *Client) preparePayload(attachments []Attachment) (payload []byte, err error) {
