@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"time"
 )
 
 type Client struct {
@@ -22,6 +24,33 @@ func NewClient(apiKey, apiToken string) *Client {
 		apiToken:   apiToken,
 		baseUrl:    "https://api.trello.com/1/",
 	}
+}
+
+func (client *Client) CreateCard(listId, taskName string, dueDate time.Time) (card Card, err error) {
+	url := fmt.Sprintf("%scards?key=%s&token=%s&idList=%s&name=%s&due=%s",
+		client.baseUrl,
+		client.apiKey,
+		client.apiToken,
+		listId,
+		url.QueryEscape(taskName),
+		dueDate.Format("2006-01-02"),
+	)
+	res, err := client.sendRequest("POST", url, nil)
+	if err != nil {
+		return card, err
+	}
+
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return card, fmt.Errorf("trello client encountered error reading response body: %s", err)
+	}
+
+	err = json.Unmarshal(bodyBytes, &card)
+	if err != nil {
+		return card, fmt.Errorf("trello client encountered error unmarshalling response body: %s", err)
+	}
+	return card, nil
 }
 
 func (client *Client) GetCards(boardId string) (cards []Card, err error) {

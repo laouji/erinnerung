@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/laouji/erinnerung/trello"
+	"github.com/laouji/erinnerung/util"
 )
 
 type Client struct {
@@ -32,12 +33,12 @@ func (client *Client) Post(cards []trello.Card, locationStr string) error {
 		return nil // nothing to do
 	}
 
-	location, err := client.parseLocation(locationStr)
+	location, err := util.ParseLocation(locationStr)
 	if err != nil {
 		return fmt.Errorf("could not load timezone: %s", err)
 	}
 
-	attachments := client.generateAttachments(cards, location)
+	attachments := GenerateAttachments(cards, location)
 	jsonPayload, err := client.preparePayload(attachments)
 	if err != nil {
 		return fmt.Errorf("slack client encountered error generating payload: %s", err)
@@ -85,13 +86,13 @@ func (client *Client) preparePayload(attachments []Attachment) (payload []byte, 
 	return payload, nil
 }
 
-func (client *Client) generateAttachments(cards []trello.Card, location *time.Location) []Attachment {
+func GenerateAttachments(cards []trello.Card, location *time.Location) []Attachment {
 	attachments := []Attachment{}
 
 	for _, card := range cards {
 		attachment := Attachment{
 			Title:    card.Name,
-			Text:     "_Fälligkeitsdatum_: " + card.Due.In(location).Format("2006-01-02 15:04:05"),
+			Text:     "_Fälligkeitsdatum_: " + card.Due.In(location).Format("2006-01-02"),
 			Fallback: card.Name,
 		}
 
@@ -103,11 +104,4 @@ func (client *Client) generateAttachments(cards []trello.Card, location *time.Lo
 	}
 
 	return attachments
-}
-
-func (client *Client) parseLocation(locationStr string) (loc *time.Location, err error) {
-	if locationStr == "" {
-		return time.UTC, nil
-	}
-	return time.LoadLocation(locationStr)
 }

@@ -15,7 +15,9 @@ type Data struct {
 	ApiKey          string `yaml:"api_key"`
 	ApiToken        string `yaml:"api_token"`
 	BoardId         string `yaml:"board_id"`
+	ListId          string `yaml:"list_id"`
 	Port            int    `yaml:"port"`
+	SlackToken      string `yaml:"slack_token"`
 }
 
 func LoadConfig(filepath string) (data *Data, err error) {
