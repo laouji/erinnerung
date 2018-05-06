@@ -45,6 +45,23 @@ func (client *Client) GetCards(boardId string) (cards []Card, err error) {
 	return cards, nil
 }
 
+func (client *Client) ArchiveOld(cards []Card) error {
+	if len(cards) < 1 {
+		return nil // nothing to be done
+	}
+
+	for _, card := range cards {
+		url := fmt.Sprintf("%scards/%s?key=%s&token=%s&closed=true", client.baseUrl, card.Id, client.apiKey, client.apiToken)
+
+		_, err := client.sendRequest("PUT", url, nil)
+		if err != nil {
+			return fmt.Errorf("trello client encountered error archiving card %s: %s", card.Id, err)
+		}
+	}
+
+	return nil
+}
+
 func (client *Client) sendRequest(method, url string, body io.Reader) (res *http.Response, err error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {

@@ -5,13 +5,13 @@ import (
 	"log"
 
 	"github.com/laouji/erinnerung/config"
+	"github.com/laouji/erinnerung/reminder"
 	"github.com/laouji/erinnerung/slack"
 	"github.com/laouji/erinnerung/trello"
 )
 
-var configFile string
-
 func main() {
+	var configFile string
 	flag.StringVar(&configFile, "c", "config.yml", "location of config file")
 	flag.Parse()
 
@@ -21,14 +21,11 @@ func main() {
 	}
 
 	trelloClient := trello.NewClient(conf.ApiKey, conf.ApiToken)
-	cards, err := trelloClient.GetCards(conf.BoardId)
-	if err != nil {
-		log.Fatalf("error getting trello cards %s", err)
-	}
-
 	slackClient := slack.NewClient(conf.WebHookUri, conf.BotName, conf.IconEmoji)
-	err = slackClient.Post(cards, conf.DisplayTimezone)
+
+	reminder := reminder.New(conf, trelloClient, slackClient)
+	err = reminder.Remind()
 	if err != nil {
-		log.Fatalf("error posting to slack %s", err)
+		log.Fatalf("error sending reminder %s", err)
 	}
 }
