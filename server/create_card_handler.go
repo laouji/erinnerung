@@ -39,7 +39,8 @@ func (handler *CreateCardHandler) ServeHTTP(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	dueDate := handler.estimateDueDate()
+	today := time.Now()
+	dueDate := EstimateDueDate(today)
 	card, err := handler.trelloClient.CreateCard(handler.conf.ListId, cardName, dueDate)
 	if err != nil {
 		handler.writeError(w, fmt.Errorf("create card handler could not create new trello card: %s", err))
@@ -78,18 +79,20 @@ func (handler *CreateCardHandler) writeUnauthorized(w http.ResponseWriter) {
 	w.Write([]byte(`{"text":"unauthorized"}`))
 }
 
-func (handler *CreateCardHandler) estimateDueDate() time.Time {
-	today := time.Now().Truncate(time.Hour * 24)
-	var daysUntilWednesday int
+func EstimateDueDate(dateAssigned time.Time) time.Time {
+	durationDay := time.Hour * 24
+	dateAssigned = dateAssigned.Truncate(durationDay)
 
-	switch today.Weekday() {
-	case time.Wednesday:
-		daysUntilWednesday = 7
-	case time.Sunday, time.Monday, time.Tuesday:
-		daysUntilWednesday = 3 - int(today.Weekday())
+	var daysSinceMonday int
+	switch dateAssigned.Weekday() {
+	case time.Monday:
+		daysSinceMonday = 0
+	case time.Sunday:
+		daysSinceMonday = 6
 	default:
-		daysUntilWednesday = 4 + int(today.Weekday())
+		daysSinceMonday = int(dateAssigned.Weekday()) - 1
 	}
 
-	return today.Add(time.Hour * 24 * time.Duration(daysUntilWednesday)).Add(16 * time.Hour)
+	lastMonday := dateAssigned.Add(-time.Duration(daysSinceMonday) * durationDay)
+	return lastMonday.Add(7 * durationDay).Add(11 * time.Hour)
 }
